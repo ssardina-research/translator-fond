@@ -1,5 +1,7 @@
 #! /usr/bin/env python
 
+from itertools import product
+
 import copy
 
 import pddl
@@ -121,15 +123,13 @@ def get_axiom_predicate(axiom):
 def all_conditions(task):
     for action in task.actions:
         yield PreconditionProxy(action)
-        # FOND
-        for nondet_choice in action.effects:
-            for effect in nondet_choice:
-                yield EffectConditionProxy(action, effect)
+        for effect in action.effects:
+            yield EffectConditionProxy(action, effect)
     for axiom in task.axioms:
         yield AxiomConditionProxy(axiom)
     yield GoalConditionProxy(task)
 
-# [1] Remove universal quantifications from conditions.
+# [1.1] Remove universal quantifications from conditions using axioms.
 #
 # Replace, in a top-down fashion, <forall(vars, phi)> by <not(not-all-phi)>,
 # where <not-all-phi> is a new axiom.
@@ -138,7 +138,7 @@ def all_conditions(task):
 # translated to NNF. The parameters of the new axioms are exactly the free
 # variables of <forall(vars, phi)>.
 
-def remove_universal_quantifiers(task):
+def remove_universal_quantifiers_with_axioms(task):
     def recurse(condition):
         # Uses new_axioms_by_condition and type_map from surrounding scope.
         if isinstance(condition, pddl.UniversalCondition):
@@ -161,6 +161,59 @@ def remove_universal_quantifiers(task):
         if proxy.condition.has_universal_part():
             type_map = proxy.get_type_map()
             proxy.set(recurse(proxy.condition))
+
+# [1.2] Remove universal quantifications from conditions without axioms.
+#
+# Replace the <forall(vars, phi)> with the standard conjunction of all
+# related objects.
+
+def remove_universal_quantifiers_without_axioms(task):
+    def lit_replacement(condition, obj_map):
+        if isinstance(condition, pddl.Literal):
+            if isinstance(condition, pddl.Atom):
+                return pddl.Atom(condition.predicate, [obj_map.get(arg,arg) for arg in condition.args])
+            elif isinstance(condition, pddl.NegatedAtom):
+                return pddl.NegatedAtom(condition.predicate, [obj_map.get(arg,arg) for arg in condition.args])
+            else:
+                assert False, "What is a Literal but not an atom??"
+        else:
+            new_parts = [lit_replacement(part, obj_map) for part in condition.parts]
+            return condition.change_parts(new_parts)
+        return True
+
+    def recurse(condition):
+
+        if isinstance(condition, pddl.UniversalCondition):
+
+            assert 1 == len(condition.parts)
+            template = recurse(condition.parts[0])
+
+            type_lists = []
+            for param in condition.parameters:
+                type_lists.append(filter(lambda obj: obj.type == param.type, task.objects))
+
+            object_combos = list(product(*type_lists))
+            types = [param.name for param in condition.parameters]
+            copies = []
+
+            for combo in object_combos:
+                copies.append(lit_replacement(template, dict(zip(types, [obj.name for obj in combo]))))
+
+            return pddl.Conjunction(copies)
+        else:
+            new_parts = [recurse(part) for part in condition.parts]
+            return condition.change_parts(new_parts)
+
+    for proxy in tuple(all_conditions(task)):
+        if proxy.condition.has_universal_part():
+            proxy.set(recurse(proxy.condition).simplified())
+
+
+# [1] Set the type of removal for universal quantifications
+#
+# Note: Using the version without axioms may cause an explosion in the
+#       size of the action
+remove_universal_quantifiers = remove_universal_quantifiers_without_axioms
 
 
 # [2] Pull disjunctions to the root of the condition.
@@ -218,10 +271,13 @@ def split_disjunctions(task):
     for proxy in tuple(all_conditions(task)):
         # Cannot use generator directly because we add/delete entries.
         if isinstance(proxy.condition, pddl.Disjunction):
+            i = 1
             for part in proxy.condition.parts:
                 new_proxy = proxy.clone_owner()
                 new_proxy.set(part)
                 new_proxy.register_owner(task)
+                new_proxy.owner.name += str(i)
+                i += 1
             proxy.delete_owner(task)
 
 # [4] Pull existential quantifiers out of conjunctions and group them.
@@ -304,14 +360,12 @@ def eliminate_existential_quantifiers_from_preconditions(task):
 # "forall(x): when phi then e.
 def eliminate_existential_quantifiers_from_conditional_effects(task):
     for action in task.actions:
-        # FOND
-        for nondet_choice in action.effects:
-            for effect in nondet_choice:
-                condition = effect.condition
-                if isinstance(condition, pddl.ExistentialCondition):
-                    effect.parameters = list(effect.parameters)
-                    effect.parameters.extend(condition.parameters)
-                    effect.condition = condition.parts[0]
+        for effect in action.effects:
+            condition = effect.condition
+            if isinstance(condition, pddl.ExistentialCondition):
+                effect.parameters = list(effect.parameters)
+                effect.parameters.extend(condition.parameters)
+                effect.condition = condition.parts[0]
 
 def substitute_complicated_goal(task):
     goal = task.goal
@@ -357,13 +411,11 @@ def verify_axiom_predicates(task):
                 (fact.predicate, fact))
 
     for action in task.actions:
-        # FOND
-        for nondet_choice in action.effects:
-            for effect in nondet_choice:
-                if effect.literal.predicate in axiom_names:
-                    raise SystemExit(
-                        "error: derived predicate %r appears in effect of action %r" %
-                        (effect.literal.predicate, action.name))
+        for effect in action.effects:
+            if effect.literal.predicate in axiom_names:
+                raise SystemExit(
+                    "error: derived predicate %r appears in effect of action %r" %
+                    (effect.literal.predicate, action.name))
 
 
 # [6] Build rules for exploration component.

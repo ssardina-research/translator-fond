@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-SAS_FILE_VERSION = "3.FOND"
+SAS_FILE_VERSION = 3
 
 
 class SASTask:
@@ -128,15 +128,12 @@ class SASOperator:
         for var, val in self.prevail:
             print("  v%d: %d" % (var, val))
         print("Pre/Post:")
-        print(self.pre_post)
-        #for nondet_choice in self.pre_post:
-        #    print("nondet choice:")
-        #    for var, pre, post, cond in nondet_choice:
-        #        if cond:
-        #            cond_str = " [%s]" % ", ".join(["%d: %d" % tuple(c) for c in cond])
-        #        else:
-        #            cond_str = ""
-        #        print("  v%d: %d -> %d%s" % (var, pre, post, cond_str))
+        for var, pre, post, cond in self.pre_post:
+            if cond:
+                cond_str = " [%s]" % ", ".join(["%d: %d" % tuple(c) for c in cond])
+            else:
+                cond_str = ""
+            print("  v%d: %d -> %d%s" % (var, pre, post, cond_str))
     def output(self, stream):
         print("begin_operator", file=stream)
         print(self.name[1:-1], file=stream)
@@ -144,30 +141,20 @@ class SASOperator:
         for var, val in self.prevail:
             print(var, val, file=stream)
         print(len(self.pre_post), file=stream)
-        for nondet_choice in self.pre_post:
-            print(len(nondet_choice), file=stream)
-            for var, pre, post, cond in nondet_choice:
-                print(len(cond), end=' ', file=stream)
-                for cvar, cval in cond:
-                    print(cvar, cval, end=' ', file=stream)
-                print(var, pre, post, file=stream)
+        for var, pre, post, cond in self.pre_post:
+            print(len(cond), end=' ', file=stream)
+            for cvar, cval in cond:
+                print(cvar, cval, end=' ', file=stream)
+            print(var, pre, post, file=stream)
         print(self.cost, file=stream)
         print("end_operator", file=stream)
     def get_encoding_size(self):
         size = 1 + len(self.prevail)
-        for nondet_choice in self.pre_post:
-            for var, pre, post, cond in nondet_choice:
-                size += 1 + len(cond)
-                if pre != -1:
-                    size += 1
+        for var, pre, post, cond in self.pre_post:
+            size += 1 + len(cond)
+            if pre != -1:
+                size += 1
         return size
-    # FOND
-    def get_preconditions(self):
-        preconditions = self.prevail
-        for pp in self.pre_post:
-            if pp[1] != -1:
-                preconditions.append((pp[0], pp[1]))
-        return sorted(preconditions)
 
 class SASAxiom:
     def __init__(self, condition, effect):

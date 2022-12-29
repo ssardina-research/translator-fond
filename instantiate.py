@@ -12,9 +12,8 @@ import timers
 def get_fluent_facts(task, model):
     fluent_predicates = set()
     for action in task.actions:
-        for nondet_choice in action.effects:
-            for effect in nondet_choice:
-                fluent_predicates.add(effect.literal.predicate)
+        for effect in action.effects:
+            fluent_predicates.add(effect.literal.predicate)
     for axiom in task.axioms:
         fluent_predicates.add(axiom.name)
     return set([fact for fact in model
@@ -57,7 +56,7 @@ def instantiate(task, model):
             inst_action = action.instantiate(variable_mapping, init_facts,
                                              fluent_facts, type_to_objects)
             if inst_action:
-                instantiated_actions.extend(inst_action) # adapted to FOND
+                instantiated_actions.append(inst_action)
         elif isinstance(atom.predicate, pddl.Axiom):
             axiom = atom.predicate
             variable_mapping = dict([(par.name, arg)

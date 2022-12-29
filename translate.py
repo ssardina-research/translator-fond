@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
+from __future__ import print_function, with_statement
 
 import sys
 
@@ -28,15 +28,8 @@ import simplify
 import timers
 import tools
 
-# FOND
-def partition(seq, key):
-    partition = {}
-    for elem in seq:
-        partition.setdefault(key(elem),[]).append(elem)
-    return partition.values()
-
 # TODO: The translator may generate trivial derived variables which are always
-# true, for example if there is a derived predicate in the input that only 
+# true, for example if there ia a derived predicate in the input that only
 # depends on (non-derived) variables which are detected as always true.
 # Such a situation was encountered in the PSR-STRIPS-DerivedPredicates domain.
 # Such "always-true" variables should best be compiled away, but it is
@@ -177,24 +170,26 @@ def translate_strips_conditions(conditions, dictionary, ranges,
     return translate_strips_conditions_aux(conditions, dictionary, ranges)
 
 
-def translate_strips_operator(operator_list, dictionary, ranges, mutex_dict,
+def translate_strips_operator(operator, dictionary, ranges, mutex_dict,
                               mutex_ranges, implied_facts):
-    result = [] # FOND
-    for operator in operator_list: # FOND TODO: compute conditions only once!
-        conditions = translate_strips_conditions(operator.precondition, dictionary,
-                                                 ranges, mutex_dict, mutex_ranges)
-        if conditions is None:
-            return []
-        sas_operators = []
-        for condition in conditions:
-            op = translate_strips_operator_aux(operator, dictionary, ranges,
-                                               mutex_dict, mutex_ranges,
-                                               implied_facts, condition)
-            if op is not None:
-                sas_operators.append(op)
-        result.extend(sas_operators) # FOND
-    
-    return result
+    conditions = translate_strips_conditions(operator.precondition, dictionary,
+                                             ranges, mutex_dict, mutex_ranges)
+    if conditions is None:
+        return []
+    sas_operators = []
+
+    if len(conditions) > 1:
+        suffixes = [("_v%d" % (i+1)) for i in range(len(conditions))]
+    else:
+        suffixes = ['']
+
+    for (condition, suffix) in zip(conditions, suffixes):
+        op = translate_strips_operator_aux(operator, dictionary, ranges,
+                                           mutex_dict, mutex_ranges,
+                                           implied_facts, condition, suffix)
+        if op is not None:
+            sas_operators.append(op)
+    return sas_operators
 
 
 def negate_and_translate_condition(condition, dictionary, ranges, mutex_dict,
@@ -216,7 +211,7 @@ def negate_and_translate_condition(condition, dictionary, ranges, mutex_dict,
 
 
 def translate_strips_operator_aux(operator, dictionary, ranges, mutex_dict,
-                                  mutex_ranges, implied_facts, condition):
+                                  mutex_ranges, implied_facts, condition, suffix = ''):
 
     # collect all add effects
     effects_by_variable = defaultdict(lambda: defaultdict(list))
@@ -280,8 +275,8 @@ def translate_strips_operator_aux(operator, dictionary, ranges, mutex_dict,
                         new_cond[cvar] = cval
                     else:
                         effects_by_variable[var][none_of_those].append(new_cond)
-
-    return build_sas_operator(operator.name, condition, effects_by_variable,
+    new_name = operator.name.split(' ')[0] + suffix + ' ' + ' '.join(operator.name.split(' ')[1:])
+    return build_sas_operator(new_name, condition, effects_by_variable,
                               operator.cost, ranges, implied_facts)
 
 
@@ -321,10 +316,8 @@ def build_sas_operator(name, condition, effects_by_variable, cost, ranges,
                 if (var, pre) in eff_condition:
                     eff_condition.remove((var, pre))
                 pre_post.append((var, pre, post, eff_condition))
-
-    # FOND: Noops as nondeterminstic effects are allowed!
-    #if not pre_post:  # operator is noop
-        #return None
+    if not pre_post:  # operator is noop
+        return None
     prevail = list(condition.items())
     return sas_tasks.SASOperator(name, prevail, pre_post, cost)
 
@@ -377,34 +370,15 @@ def translate_strips_axiom(axiom, dictionary, ranges, mutex_dict, mutex_ranges):
         axioms.append(sas_tasks.SASAxiom(condition.items(), effect))
     return axioms
 
+
 def translate_strips_operators(actions, strips_to_sas, ranges, mutex_dict,
-                            mutex_ranges, implied_facts):
-    # FOND Step 1: Group actions by name. Different actions with the same name
-    #         are in fact just different non-deterministic versions of the
-    #         same action with equal parameters and conditions.
-    actions_by_name = partition(actions, (lambda a: a.name))
+                               mutex_ranges, implied_facts):
     result = []
-    for action_list in actions_by_name: 
-        sas_ops = translate_strips_operator(action_list, strips_to_sas, ranges,
+    for action in actions:
+        sas_ops = translate_strips_operator(action, strips_to_sas, ranges,
                                             mutex_dict, mutex_ranges,
                                             implied_facts)
-        if len(sas_ops) > 0:
-            # FOND Step 2: Translate groups of actions with the same name 
-            # and precondition together.
-            operatorname = sas_ops[0].name
-            assert all(op.name == operatorname for op in sas_ops)
-            operatorcost = sas_ops[0].cost
-            assert all(op.cost == operatorcost for op in sas_ops)
-            #preconditions = sas_ops[0].get_preconditions()
-            ops_by_name = partition(sas_ops, (lambda a: repr(a.get_preconditions())))
-            for op_list in ops_by_name:
-                prevail = set()
-                pre_post = []
-                for op in op_list:
-                    prevail |= set(op.prevail)
-                    pre_post.append(sorted(op.pre_post))
-                result.append(sas_tasks.SASOperator(operatorname, prevail, pre_post, operatorcost))
-    
+        result.extend(sas_ops)
     return result
 
 
@@ -668,26 +642,31 @@ def dump_statistics(sas_task):
 
 def parse_args():
     argparser = argparse.ArgumentParser()
+    argparser.add_argument("inv_limit", help="limit on the invariant synthesis")
     argparser.add_argument(
         "domain", nargs="?", help="path to domain pddl file")
     argparser.add_argument(
         "task", help="path to task pddl file")
+    argparser.add_argument(
+        "sas_name", help="sas file name")
     argparser.add_argument(
         "--relaxed", dest="generate_relaxed_task", action="store_true",
         help="output relaxed task (no delete effects)")
     return argparser.parse_args()
 
 
-def main():
-    args = parse_args()
-    print(args)
-
+# def main(args):
+def main(task, domain, inv_limit):
+    # args will be like this:
+    #   inv_limit='1000', domain='/home/ssardina/git/planning/FOND/FOND-SAT/FOND-SAT.git/F-domains/acrobatics/domain.pddl', task='/home/ssardina/git/planning/FOND/FOND-SAT/FOND-SAT.git/F-domains/acrobatics/p01.pddl', sas_name='/home/ssardina/git/planning/FOND/FOND-SAT/FOND-SAT.git/tmp_35273/output-sas.txt', generate_relaxed_task=False
     timer = timers.Timer()
-    with timers.timing("Parsing...", True):
-        task = pddl.open(task_filename=args.task, domain_filename=args.domain)
+    with timers.timing("Parsing", True):
+        task = pddl.open(task_filename=task, domain_filename=domain)
 
     with timers.timing("Normalizing task"):
         normalize.normalize(task)
+
+    task.INVARIANT_TIME_LIMIT = int(inv_limit)
 
     if args.generate_relaxed_task:
         # Remove delete effects.
@@ -697,13 +676,19 @@ def main():
                     del action.effects[index]
 
     sas_task = pddl_to_sas(task)
+
+    assert len(sas_task.operators) == len(set([o.name for o in sas_task.operators])), \
+           "Error: Operator names (with parameters) must be unique"
+
     dump_statistics(sas_task)
 
     with timers.timing("Writing output"):
-        with open("output.sas", "w") as output_file:
+        with open(args.sas_name, "w") as output_file:
             sas_task.output(output_file)
     print("Done! %s" % timer)
 
 
 if __name__ == "__main__":
-    main()
+    args = parse_args()
+
+    main(args.task, args.domain, args.inv_limit)

@@ -1,6 +1,6 @@
-# FOND Translator
+# FOND Translators
 
-This is a Python script that takes a non-deterministic PDDL (with `oneof` clauses) and yields a SAS _determinization_ encoding of the domain.
+This is a Python script that takes a non-deterministic PDDL (with `oneof` clauses) and yields a SAS _determinization_ encoding of the problem.
 
 Example run:
 

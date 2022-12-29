@@ -4,8 +4,9 @@ from __future__ import print_function
 
 from collections import defaultdict
 from itertools import count
+import sys
 
-DEBUG = False
+DEBUG = True
 
 # TODO:
 # This is all quite hackish and would be easier if the translator were
@@ -75,14 +76,12 @@ def build_dtgs(task):
         return result
 
     for op in task.operators:
-        # FOND
-        for nondet_choice in op.pre_post:
-            for var_no, pre_spec, post, cond in nondet_choice:
-                # Check all conditions on var_no for this effect.
-                # These can come from the pre_spec or from cond.
-                effective_pre = get_effective_pre(var_no, pre_spec, cond)
-                if effective_pre is not None:
-                    add_arc(var_no, pre_spec, post)
+        for var_no, pre_spec, post, cond in op.pre_post:
+            # Check all conditions on var_no for this effect.
+            # These can come from the pre_spec or from cond.
+            effective_pre = get_effective_pre(var_no, pre_spec, cond)
+            if effective_pre is not None:
+                add_arc(var_no, pre_spec, post)
     for axiom in task.axioms:
         var_no, val = axiom.effect
         add_arc(var_no, -1, val)
@@ -159,10 +158,10 @@ class VarValueRenaming(object):
                 new_var_no, new_value = self.translate_pair((var_no, value))
                 if new_value is always_true:
                     if DEBUG:
-                        print("Removed true proposition: %s" % value_name)
+                        print("Removed true proposition: %s = %s" % (str(new_var_no), value_name))
                 elif new_value is always_false:
                     if DEBUG:
-                        print("Removed false proposition: %s" % value_name)
+                        print("Removed false proposition: %s = %s" % (str(new_var_no),value_name))
                 else:
                     new_value_names[new_var_no][new_value] = value_name
         assert all((None not in value_names) for value_names in new_value_names)
@@ -229,22 +228,21 @@ class VarValueRenaming(object):
         # which is propagated up.
         self.translate_pairs_in_place(op.prevail)
         new_pre_post = []
-        # FOND
-        for nondet_choice in op.pre_post:
-            new_nondet_choice = []
-            for entry in nondet_choice:
-                try:
-                    new_nondet_choice.append(self.translate_pre_post(entry))
-                    # This may raise Impossible if "pre" is always false.
-                    # This is then propagated up.
-                except DoesNothing:
-                    # Conditional effect that is impossible to trigger, or
-                    # effect that sets an always true value. Swallow this.
-                    pass
-            new_pre_post.append(new_nondet_choice)
+        for entry in op.pre_post:
+            try:
+                new_pre_post.append(self.translate_pre_post(entry))
+                # This may raise Impossible if "pre" is always false.
+                # This is then propagated up.
+            except DoesNothing:
+                # Conditional effect that is impossible to trigger, or
+                # effect that sets an always true value. Swallow this.
+                pass
         op.pre_post = new_pre_post
-        if not new_pre_post:
-            raise DoesNothing
+        
+        # HAZ: Allow operators that do nothing (in case it was a failed
+        #      effect from a determinized action).
+        #if not new_pre_post:
+        #    raise DoesNothing
 
     def apply_to_axiom(self, axiom):
         # The following line may generate an Impossible exception,

@@ -19,18 +19,14 @@ class BalanceChecker(object):
             too_heavy_effects = []
             create_heavy_act = False
             heavy_act = action
-            # FOND
-            for nondet_choice in action.effects:
-                too_heavy_nondet_choice = []
-                for eff in nondet_choice:
-                    too_heavy_nondet_choice.append(eff)
-                    if eff.parameters: # universal effect
-                        create_heavy_act = True
-                        too_heavy_nondet_choice.append(eff.copy())
-                    if not eff.literal.negated:
-                        predicate = eff.literal.predicate
-                        self.predicates_to_add_actions[predicate].add(action)
-                too_heavy_effects.append(too_heavy_nondet_choice)
+            for eff in action.effects:
+                too_heavy_effects.append(eff)
+                if eff.parameters: # universal effect
+                    create_heavy_act = True
+                    too_heavy_effects.append(eff.copy())
+                if not eff.literal.negated:
+                    predicate = eff.literal.predicate
+                    self.predicates_to_add_actions[predicate].add(action)
             if create_heavy_act:
                 heavy_act = pddl.Action(action.name, action.parameters,
                                         action.num_external_parameters,
@@ -75,10 +71,8 @@ class BalanceChecker(object):
 def get_fluents(task):
     fluent_names = set()
     for action in task.actions:
-        # FOND
-        for nondet_choice in action.effects:
-            for eff in nondet_choice:
-                fluent_names.add(eff.literal.predicate)
+        for eff in action.effects:
+            fluent_names.add(eff.literal.predicate)
     return [pred for pred in task.predicates if pred.name in fluent_names]
 
 def get_initial_invariants(task):
@@ -91,11 +85,10 @@ def get_initial_invariants(task):
 
 # Input file might be grounded, beware of too many invariant candidates
 MAX_CANDIDATES = 100000
-MAX_TIME = 300
+#MAX_TIME = 300 <-- This is now set in the PRP script and passed in as an argument
 
 def find_invariants(task, reachable_action_params):
     candidates = deque(get_initial_invariants(task))
-
     print(len(candidates), "initial candidates")
     seen_candidates = set(candidates)
 
@@ -106,10 +99,19 @@ def find_invariants(task, reachable_action_params):
             candidates.append(invariant)
             seen_candidates.add(invariant)
 
-    start_time = time.time()
+    # time.clock() deprecated in Python < 3.8 https://bit.ly/3oBIa6c
+    try:
+        start_time = time.process_time()    # Python 3.8
+    except:
+        start_time = time.clock()    # Python < 3.8
     while candidates:
         candidate = candidates.popleft()
-        if time.time() - start_time > MAX_TIME:
+        # time.clock() deprecated in Python < 3.8 https://bit.ly/3oBIa6c
+        try:
+            curr_time = time.process_time()    # Python 3.8
+        except:
+            curr_time = time.clock()    # Python < 3.8
+        if curr_time - start_time > task.INVARIANT_TIME_LIMIT:
             print("Time limit reached, aborting invariant generation")
             return
         if candidate.check_balance(balance_checker, enqueue_func):
@@ -139,10 +141,8 @@ def useful_groups(invariants, initial_facts):
 def get_groups(task, reachable_action_params=None):
     with timers.timing("Finding invariants", block=True):
         invariants = sorted(find_invariants(task, reachable_action_params))
-
     with timers.timing("Checking invariant weight"):
         result = list(useful_groups(invariants, task.init))
-
     return result
 
 if __name__ == "__main__":
