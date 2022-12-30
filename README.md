@@ -17,10 +17,13 @@ This translator basically does two things:
 
 This determinization SAS encoding has been used by various planners:
 
-* [myND](https://github.com/ssardina-planning/myND).
+* FIP.
 * [PRP](https://github.com/ssardina-planning/planner-for-relevant-policies).
 * [FOND-SAT](https://github.com/ssardina-planning/FOND-SAT).
-* [Paladinus](https://github.com/ramonpereira/paladinus).
 
 This repo basically has factored out such encoding into its own repo for modularity and further development as an independent tool.
 
+Other FOND planners use a translation, but a different one:
+
+* [myND](https://github.com/ssardina-planning/myND).
+* [Paladinus](https://github.com/ramonpereira/paladinus).
