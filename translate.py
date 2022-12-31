@@ -640,24 +640,6 @@ def dump_statistics(sas_task):
         print("Translator peak memory: %d KB" % peak_memory)
 
 
-def parse_args():
-    argparser = argparse.ArgumentParser(description="Translator from ND PDDL to SAS determinization.")
-    argparser.add_argument("inv_limit", help="limit on the invariant synthesis")
-    argparser.add_argument(
-        "domain", nargs="?", help="path to domain pddl file")
-    argparser.add_argument(
-        "task", help="path to task pddl file")
-    argparser.add_argument(
-        "--outsas",
-        default="output.sas",
-        help="SAS output file name %(default)s")
-    argparser.add_argument(
-        "--relaxed",
-        dest="generate_relaxed_task", 
-        action="store_true",
-        help="output relaxed task (no delete effects)")
-    return argparser.parse_args()
-
 
 # def main(args):
 def main(task, domain, inv_limit, sas_file="output.sas"):
@@ -693,7 +675,25 @@ def main(task, domain, inv_limit, sas_file="output.sas"):
 
 
 if __name__ == "__main__":
-    args = parse_args()
-    print(args)
+    argparser = argparse.ArgumentParser(description="Translator from ND PDDL to SAS determinization.")
+    argparser.add_argument(
+        "inv_limit",
+        help="limit on the invariant synthesis")
+    argparser.add_argument(
+        "domain",
+        nargs="?",
+        help="path to domain pddl file")
+    argparser.add_argument(
+        "task", help="path to task pddl file")
+    argparser.add_argument(
+        "--outsas",
+        default="output.sas",
+        help="SAS output file name %(default)s")
+    argparser.add_argument(
+        "--relaxed",
+        dest="generate_relaxed_task",
+        action="store_true",
+        help="output relaxed task (no delete effects)")
+    args = argparser.parse_args()
 
     main(args.task, args.domain, args.inv_limit, args.outsas)

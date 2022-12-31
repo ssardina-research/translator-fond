@@ -5,7 +5,7 @@ This is a Python script that takes a non-deterministic PDDL (with `oneof` clause
 Example run:
 
 ```shell
-$ python translate.py tests/acrobatics/domain.pddl tests/acrobatics/p1.pddl
+$ python translate.py 100 tests/acrobatics/domain.pddl tests/acrobatics/p1.pddl
 ```
 
 It generates a file `output.sas` with the SAS encoding of the determinization of the original non-deterministic problem.
@@ -23,7 +23,7 @@ This determinization SAS encoding has been used by various planners:
 
 This repo basically has factored out such encoding into its own repo for modularity and further development as an independent tool.
 
-Other FOND planners use a translation, but a different one:
+Other FOND planners use a translation to SAS, but a different one:
 
 * [myND](https://github.com/ssardina-planning/myND).
 * [Paladinus](https://github.com/ramonpereira/paladinus).
