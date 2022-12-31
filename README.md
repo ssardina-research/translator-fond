@@ -8,7 +8,7 @@ Example run:
 $ python translate.py 100 tests/acrobatics/domain.pddl tests/acrobatics/p1.pddl
 ```
 
-It generates a file `output.sas` with the SAS encoding of the determinization of the original non-deterministic problem.
+By default, it generates a file `output.sas` with the SAS encoding of the determinization of the original non-deterministic problem. An alternative SAS filename can be given via `--optsas` option.
 
 This translator basically does two things:
 
@@ -23,7 +23,5 @@ This determinization SAS encoding has been used by various planners:
 
 This repo basically has factored out such encoding into its own repo for modularity and further development as an independent tool.
 
-Other FOND planners use a translation to SAS, but a different one:
+Other FOND planners (like [myND](https://github.com/ssardina-planning/myND) and [Paladinus](https://github.com/ramonpereira/paladinus)) use a translation to SAS, but a different one that does not include determinization of the domain.
 
-* [myND](https://github.com/ssardina-planning/myND).
-* [Paladinus](https://github.com/ramonpereira/paladinus).
