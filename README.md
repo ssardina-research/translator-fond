@@ -8,7 +8,7 @@ Example run:
 $ python translate.py 100 tests/acrobatics/domain.pddl tests/acrobatics/p1.pddl
 ```
 
-By default, it generates a file `output.sas` with the SAS encoding of the determinization of the original non-deterministic problem. An alternative SAS filename can be given via `--optsas` option.
+By default, it generates a file `output.sas` with the SAS encoding of the determinization of the original non-deterministic problem. An alternative SAS filename can be given via `--outsas` option.
 
 This translator basically does two things:
 
