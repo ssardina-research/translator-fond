@@ -369,7 +369,7 @@ class VarValueRenaming:
                 new_var = new_entry[0]
                 new_prevail_vars.discard(new_var)
 
-        if not new_pre_post:
+        if not new_pre_post and "_DETDUP_" not in op.name:
             # The operator has no effect.
             return None
         new_prevail = sorted(

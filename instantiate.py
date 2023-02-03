@@ -8,6 +8,7 @@ import pddl_to_prolog
 import pddl
 import timers
 
+
 def get_fluent_facts(task, model):
     fluent_predicates = set()
     for action in task.actions:
@@ -17,6 +18,7 @@ def get_fluent_facts(task, model):
         fluent_predicates.add(axiom.name)
     return {fact for fact in model
             if fact.predicate in fluent_predicates}
+
 
 def get_objects_by_type(typed_objects, types):
     result = defaultdict(list)
@@ -28,6 +30,7 @@ def get_objects_by_type(typed_objects, types):
         for type in supertypes[obj.type_name]:
             result[type].append(obj.name)
     return result
+
 
 def instantiate_goal(goal, init_facts, fluent_facts):
     # With the way this module is designed, we need to "instantiate"
@@ -49,6 +52,7 @@ def instantiate_goal(goal, init_facts, fluent_facts):
     except pddl.conditions.Impossible:
         return None
     return result
+
 
 def instantiate(task, model):
     relaxed_reachable = False
@@ -111,6 +115,7 @@ def explore(task):
 
 if __name__ == "__main__":
     import pddl_parser
+
     task = pddl_parser.open()
     relaxed_reachable, atoms, actions, goals, axioms, _ = explore(task)
     print("goal relaxed reachable: %s" % relaxed_reachable)

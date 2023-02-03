@@ -2,6 +2,7 @@ import sys
 
 import graph
 import pddl
+from pddl.effects import cartesian_product
 
 
 def parse_typed_list(alist, only_variables=False,
@@ -21,8 +22,8 @@ def parse_typed_list(alist, only_variables=False,
             alist = alist[separator_position + 2:]
         for item in items:
             assert not only_variables or item.startswith("?"), \
-                   "Expected item to be a variable: %s in (%s)" % (
-                item, " ".join(items))
+                "Expected item to be a variable: %s in (%s)" % (
+                    item, " ".join(items))
             entry = constructor(item, _type)
             result.append(entry)
     return result
@@ -79,8 +80,8 @@ def parse_condition_aux(alist, negated, type_dict, predicate_dict):
 
     if tag == "imply":
         parts = [parse_condition_aux(
-                args[0], not negated, type_dict, predicate_dict),
-                 parse_condition_aux(
+            args[0], not negated, type_dict, predicate_dict),
+            parse_condition_aux(
                 args[1], negated, type_dict, predicate_dict)]
         tag = "or"
     else:
@@ -117,6 +118,8 @@ def parse_literal(alist, type_dict, predicate_dict, negated=False):
 
 
 SEEN_WARNING_TYPE_PREDICATE_NAME_CLASH = False
+
+
 def _get_predicate_id_and_arity(text, type_dict, predicate_dict):
     global SEEN_WARNING_TYPE_PREDICATE_NAME_CLASH
 
@@ -139,14 +142,30 @@ def _get_predicate_id_and_arity(text, type_dict, predicate_dict):
 
 def parse_effects(alist, result, type_dict, predicate_dict):
     """Parse a PDDL effect (any combination of simple, conjunctive, conditional, and universal)."""
-    tmp_effect = parse_effect(alist, type_dict, predicate_dict)
-    normalized = tmp_effect.normalize()
-    cost_eff, rest_effect = normalized.extract_cost()
-    add_effect(rest_effect, result)
-    if cost_eff:
-        return cost_eff.effect
-    else:
-        return None
+    # tmp_effect = parse_effect(alist, type_dict, predicate_dict)
+    # normalized = tmp_effect.normalize()
+    # cost_eff, rest_effect = normalized.extract_cost()
+    # add_effect(rest_effect, result)
+    # if cost_eff:
+    #     return cost_eff.effect
+    # else:
+    #     return None
+
+    tmp_effects = parse_effect(alist, type_dict, predicate_dict)
+    normalized = [tmp_effect.normalize() for tmp_effect in tmp_effects]
+    cost_rest_eff = [norm.extract_cost() for norm in normalized]
+    cost_eff_pairs = []
+
+    for (cost_eff, rest_effect) in cost_rest_eff:
+        res = []
+        add_effect(rest_effect, res)
+        add_effect(rest_effect, result)
+        if cost_eff:
+            cost_eff_pairs.append((cost_eff.effect, res))
+        else:
+            cost_eff_pairs.append((None, res))
+    return cost_eff_pairs
+
 
 def add_effect(tmp_effect, result):
     """tmp_effect has the following structure:
@@ -188,31 +207,37 @@ def add_effect(tmp_effect, result):
                 result.remove(contradiction)
                 result.append(new_effect)
 
+
 def parse_effect(alist, type_dict, predicate_dict):
     tag = alist[0]
     if tag == "and":
-        return pddl.ConjunctiveEffect(
-            [parse_effect(eff, type_dict, predicate_dict) for eff in alist[1:]])
+        conjuncts = cartesian_product(*[parse_effect(eff, type_dict, predicate_dict) for eff in alist[1:]])
+        return [pddl.ConjunctiveEffect(conjunct) for conjunct in conjuncts]
     elif tag == "forall":
         assert len(alist) == 3
         parameters = parse_typed_list(alist[1])
         effect = parse_effect(alist[2], type_dict, predicate_dict)
-        return pddl.UniversalEffect(parameters, effect)
+        return [pddl.UniversalEffect(parameters, effect)]
     elif tag == "when":
         assert len(alist) == 3
         condition = parse_condition(
             alist[1], type_dict, predicate_dict)
         effect = parse_effect(alist[2], type_dict, predicate_dict)
-        return pddl.ConditionalEffect(condition, effect)
+        return [pddl.ConditionalEffect(condition, effect)]
     elif tag == "increase":
         assert len(alist) == 3
         assert alist[1] == ['total-cost']
         assignment = parse_assignment(alist)
-        return pddl.CostEffect(assignment)
+        return [pddl.CostEffect(assignment)]
+    elif tag == "oneof":
+        options = []
+        for eff in alist[1:]:
+            options.extend(parse_effect(eff, type_dict, predicate_dict))
+        return options
     else:
         # We pass in {} instead of type_dict here because types must
         # be static predicates, so cannot be the target of an effect.
-        return pddl.SimpleEffect(parse_literal(alist, {}, predicate_dict))
+        return [pddl.SimpleEffect(parse_literal(alist, {}, predicate_dict))]
 
 
 def parse_expression(exp):
@@ -225,6 +250,7 @@ def parse_expression(exp):
         raise ValueError("Negative numbers are not supported")
     else:
         return pddl.PrimitiveNumericExpression(exp, [])
+
 
 def parse_assignment(alist):
     assert len(alist) == 3
@@ -269,15 +295,21 @@ def parse_action(alist, type_dict, predicate_dict):
     eff = []
     if effect_list:
         try:
-            cost = parse_effects(
-                effect_list, eff, type_dict, predicate_dict)
+            # cost = parse_effects(effect_list, eff, type_dict, predicate_dict)
+            cost_eff_pairs = parse_effects(effect_list, eff, type_dict, predicate_dict)
+            if len(cost_eff_pairs) == 1:
+                cost_eff_pairs = [(cost_eff_pairs[0][0], cost_eff_pairs[0][1], '')]
+            else:
+                cost_eff_pairs = [(cost_eff_pairs[i][0], cost_eff_pairs[i][1], "_DETDUP_%d" % i) for i in range(len(cost_eff_pairs))]
         except ValueError as e:
             raise SystemExit("Error in Action %s\nReason: %s." % (name, e))
     for rest in iterator:
         assert False, rest
     if eff:
-        return pddl.Action(name, parameters, len(parameters),
-                           precondition, eff, cost)
+        # return pddl.Action(name, parameters, len(parameters),
+        #                    precondition, eff, cost)
+        actions = [pddl.Action(name + suffix, parameters, len(parameters), precondition, eff, cost) for (cost, eff, suffix) in cost_eff_pairs]
+        return actions
     else:
         return None
 
@@ -294,13 +326,13 @@ def parse_axiom(alist, type_dict, predicate_dict):
 
 def parse_task(domain_pddl, task_pddl):
     domain_name, domain_requirements, types, type_dict, constants, predicates, predicate_dict, functions, actions, axioms \
-                 = parse_domain_pddl(domain_pddl)
+        = parse_domain_pddl(domain_pddl)
     task_name, task_domain_name, task_requirements, objects, init, goal, use_metric = parse_task_pddl(task_pddl, type_dict, predicate_dict)
 
     assert domain_name == task_domain_name
     requirements = pddl.Requirements(sorted(set(
-                domain_requirements.requirements +
-                task_requirements.requirements)))
+        domain_requirements.requirements +
+        task_requirements.requirements)))
     objects = constants + objects
     check_for_duplicates(
         [o.name for o in objects],
@@ -341,7 +373,7 @@ def parse_domain_pddl(domain_pddl):
             raise SystemExit("Error in domain specification\n" +
                              "Reason: two '%s' specifications." % field)
         if (seen_fields and
-            correct_order.index(seen_fields[-1]) > correct_order.index(field)):
+                correct_order.index(seen_fields[-1]) > correct_order.index(field)):
             msg = "\nWarning: %s specification not allowed here (cf. PDDL BNF)" % field
             print(msg, file=sys.stderr)
         seen_fields.append(field)
@@ -349,7 +381,7 @@ def parse_domain_pddl(domain_pddl):
             requirements = pddl.Requirements(opt[1:])
         elif field == ":types":
             the_types.extend(parse_typed_list(
-                    opt[1:], constructor=pddl.Type))
+                opt[1:], constructor=pddl.Type))
         elif field == ":constants":
             constants = parse_typed_list(opt[1:])
         elif field == ":predicates":
@@ -388,9 +420,10 @@ def parse_domain_pddl(domain_pddl):
         else:
             action = parse_action(entry, type_dict, predicate_dict)
             if action is not None:
-                the_actions.append(action)
+                the_actions.extend(action)
     yield the_actions
     yield the_axioms
+
 
 def parse_task_pddl(task_pddl, type_dict, predicate_dict):
     iterator = iter(task_pddl)

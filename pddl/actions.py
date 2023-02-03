@@ -86,18 +86,18 @@ class Action:
         for eff in self.effects:
             eff.instantiate(var_mapping, init_facts, fluent_facts,
                             objects_by_type, effects)
-        if effects:
-            if metric:
-                if self.cost is None:
-                    cost = 0
-                else:
-                    cost = int(self.cost.instantiate(
-                        var_mapping, init_assignments).expression.value)
+        # if effects:
+        if metric:
+            if self.cost is None:
+                cost = 0
             else:
-                cost = 1
-            return PropositionalAction(name, precondition, effects, cost)
+                cost = int(self.cost.instantiate(
+                    var_mapping, init_assignments).expression.value)
         else:
-            return None
+            cost = 1
+        return PropositionalAction(name, precondition, effects, cost)
+        # else:
+        #     return None
 
 
 class PropositionalAction:

@@ -5,12 +5,13 @@ import os
 import sys
 import traceback
 
+
 def python_version_supported():
     return sys.version_info >= (3, 6)
 
+
 if not python_version_supported():
     sys.exit("Error: Translator only supports Python >= 3.6.")
-
 
 from collections import defaultdict
 from copy import deepcopy
@@ -41,7 +42,6 @@ import variable_order
 # non-derived).
 
 DEBUG = False
-
 
 ## For a full list of exit codes, please see driver/returncodes.py. Here,
 ## we only list codes that are used by the translator component of the planner.
@@ -206,7 +206,6 @@ def negate_and_translate_condition(condition, dictionary, ranges, mutex_dict,
 
 def translate_strips_operator_aux(operator, dictionary, ranges, mutex_dict,
                                   mutex_ranges, implied_facts, condition):
-
     # collect all add effects
     effects_by_variable = defaultdict(lambda: defaultdict(list))
     # effects_by_variables: var -> val -> list(FDR conditions)
@@ -325,7 +324,7 @@ def build_sas_operator(name, condition, effects_by_variable, cost, ranges,
             # the condition on var is not a prevail condition but a
             # precondition, so we remove it from the prevail condition
             condition.pop(var, -1)
-    if not pre_post:  # operator is noop
+    if not pre_post and "_DETDUP_" not in name:  # operator is noop
         return None
     prevail = list(condition.items())
     return sas_tasks.SASOperator(name, prevail, pre_post, cost)
@@ -511,13 +510,16 @@ def trivial_task(solvable):
     return sas_tasks.SASTask(variables, mutexes, init, goal,
                              operators, axioms, metric)
 
+
 def solvable_sas_task(msg):
     print("%s! Generating solvable task..." % msg)
     return trivial_task(solvable=True)
 
+
 def unsolvable_sas_task(msg):
     print("%s! Generating unsolvable task..." % msg)
     return trivial_task(solvable=False)
+
 
 def pddl_to_sas(task):
     with timers.timing("Instantiating", block=True):
@@ -719,7 +721,7 @@ if __name__ == "__main__":
     try:
         # Reserve about 10 MB of emergency memory.
         # https://stackoverflow.com/questions/19469608/
-        emergency_memory = b"x" * 10**7
+        emergency_memory = b"x" * 10 ** 7
         main()
     except MemoryError:
         del emergency_memory
