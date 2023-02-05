@@ -316,7 +316,7 @@ def build_sas_operator(name, condition, effects_by_variable, cost, ranges,
                 if (var, pre) in eff_condition:
                     eff_condition.remove((var, pre))
                 pre_post.append((var, pre, post, eff_condition))
-    if not pre_post:  # operator is noop
+    if not pre_post and "_DETDUP_" not in name:  # operator is noop
         return None
     prevail = list(condition.items())
     return sas_tasks.SASOperator(name, prevail, pre_post, cost)
