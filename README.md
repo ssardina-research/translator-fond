@@ -20,8 +20,9 @@ This determinization SAS encoding has been used by various planners:
 * FIP.
 * [PRP](https://github.com/ssardina-planning/planner-for-relevant-policies).
 * [FOND-SAT](https://github.com/ssardina-planning/FOND-SAT).
+* [FOND-ASP](https://github.com/idrave/FOND-ASP).
 
 This repo basically has factored out such encoding into its own repo for modularity and further development as an independent tool.
 
-Other FOND planners (like [myND](https://github.com/ssardina-planning/myND) and [Paladinus](https://github.com/ramonpereira/paladinus)) use a translation to SAS, but a different one that does not include determinization of the domain.
+**Note:** Other FOND planners, like [myND](https://github.com/ssardina-planning/myND) and [Paladinus](https://github.com/ramonpereira/paladinus), also use translation of non-deterministic domains to SAS, but with a very different determinization approach that do not create new actions with suffixes (e.g., `_DET1`) but modify existing actions with new arguments.
 
