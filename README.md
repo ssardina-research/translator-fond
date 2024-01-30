@@ -5,10 +5,10 @@ This is a Python script that takes a non-deterministic PDDL (with `oneof` clause
 Example run:
 
 ```shell
-$ python translate.py 100 tests/acrobatics/domain.pddl tests/acrobatics/p1.pddl
+$ python translate.py tests/acrobatics/domain.pddl tests/acrobatics/p1.pddl
 ```
 
-By default, it generates a file `output.sas` with the SAS encoding of the determinization of the original non-deterministic problem. An alternative SAS filename can be given via `--outsas` option.
+By default, it generates a file `output.sas` with the SAS encoding of the determinization of the original non-deterministic problem. An alternative SAS filename can be given via `--sas-file` option.
 
 This translator basically does two things:
 

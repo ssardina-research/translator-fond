@@ -1,16 +1,16 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
-from __future__ import print_function
 
 from collections import deque, defaultdict
 import itertools
 import time
 
 import invariants
+import options
 import pddl
 import timers
 
-class BalanceChecker(object):
+class BalanceChecker:
     def __init__(self, task, reachable_action_params):
         self.predicates_to_add_actions = defaultdict(set)
         self.action_to_heavy_action = {}
@@ -83,35 +83,23 @@ def get_initial_invariants(task):
             part = invariants.InvariantPart(predicate.name, order, omitted_arg)
             yield invariants.Invariant((part,))
 
-# Input file might be grounded, beware of too many invariant candidates
-MAX_CANDIDATES = 100000
-#MAX_TIME = 300 <-- This is now set in the PRP script and passed in as an argument
-
 def find_invariants(task, reachable_action_params):
-    candidates = deque(get_initial_invariants(task))
+    limit = options.invariant_generation_max_candidates
+    candidates = deque(itertools.islice(get_initial_invariants(task), 0, limit))
     print(len(candidates), "initial candidates")
     seen_candidates = set(candidates)
 
     balance_checker = BalanceChecker(task, reachable_action_params)
 
     def enqueue_func(invariant):
-        if len(seen_candidates) < MAX_CANDIDATES and invariant not in seen_candidates:
+        if len(seen_candidates) < limit and invariant not in seen_candidates:
             candidates.append(invariant)
             seen_candidates.add(invariant)
 
-    # time.clock() deprecated in Python < 3.8 https://bit.ly/3oBIa6c
-    try:
-        start_time = time.process_time()    # Python 3.8
-    except:
-        start_time = time.clock()    # Python < 3.8
+    start_time = time.process_time()
     while candidates:
         candidate = candidates.popleft()
-        # time.clock() deprecated in Python < 3.8 https://bit.ly/3oBIa6c
-        try:
-            curr_time = time.process_time()    # Python 3.8
-        except:
-            curr_time = time.clock()    # Python < 3.8
-        if curr_time - start_time > task.INVARIANT_TIME_LIMIT:
+        if time.process_time() - start_time > options.invariant_generation_max_time:
             print("Time limit reached, aborting invariant generation")
             return
         if candidate.check_balance(balance_checker, enqueue_func):
@@ -147,8 +135,10 @@ def get_groups(task, reachable_action_params=None):
 
 if __name__ == "__main__":
     import normalize
+    import pddl_parser
+
     print("Parsing...")
-    task = pddl.open()
+    task = pddl_parser.open()
     print("Normalizing...")
     normalize.normalize(task)
     print("Finding invariants...")

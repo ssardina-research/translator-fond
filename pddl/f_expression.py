@@ -1,29 +1,4 @@
-from __future__ import print_function
-
-def parse_expression(exp):
-    if isinstance(exp, list):
-        functionsymbol = exp[0]
-        return PrimitiveNumericExpression(functionsymbol, exp[1:])
-    elif exp.replace(".", "").isdigit():
-        return NumericConstant(float(exp))
-    elif exp[0] == "-":
-        raise ValueError("Negative numbers are not supported")
-    else:
-        return PrimitiveNumericExpression(exp, [])
-
-def parse_assignment(alist):
-    assert len(alist) == 3
-    op = alist[0]
-    head = parse_expression(alist[1])
-    exp = parse_expression(alist[2])
-    if op == "=":
-        return Assign(head, exp)
-    elif op == "increase":
-        return Increase(head, exp)
-    else:
-        assert False, "Assignment operator not supported."
-
-class FunctionalExpression(object):
+class FunctionalExpression:
     def __init__(self, parts):
         self.parts = tuple(parts)
     def dump(self, indent="  "):
@@ -65,23 +40,19 @@ class PrimitiveNumericExpression(FunctionalExpression):
         return "%s %s(%s)" % ("PNE", self.symbol, ", ".join(map(str, self.args)))
     def dump(self, indent="  "):
         print("%s%s" % (indent, self._dump()))
-        for arg in self.args:
-            arg.dump(indent + "  ")
     def _dump(self):
         return str(self)
-    def instantiate(self, var_mapping, init_facts):
+    def instantiate(self, var_mapping, init_assignments):
         args = [var_mapping.get(arg, arg) for arg in self.args]
         pne = PrimitiveNumericExpression(self.symbol, args)
         assert self.symbol != "total-cost"
         # We know this expression is constant. Substitute it by corresponding
         # initialization from task.
-        for fact in init_facts:
-            if isinstance(fact, FunctionAssignment):
-                if fact.fluent == pne:
-                    return fact.expression
-        assert False, "Could not find instantiation for PNE!"
+        result = init_assignments.get(pne)
+        assert result is not None, "Could not find instantiation for PNE: %r" % (str(pne),)
+        return result
 
-class FunctionAssignment(object):
+class FunctionAssignment:
     def __init__(self, fluent, expression):
         self.fluent = fluent
         self.expression = expression
