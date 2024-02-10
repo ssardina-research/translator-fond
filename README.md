@@ -27,6 +27,7 @@ For different formats on how `oneof` clauses may be used, refer to this paper:
 
 * Jussi Rintanen: [Expressive Equivalence of Formalisms for Planning with Sensing](https://gki.informatik.uni-freiburg.de/papers/Rintanen03expr.pdf). ICAPS 2003: 185-194
 
+For a lifted determinization of a FOND domain, please check [fond2allout](https://github.com/ssardina-research/fond2allout) repo.
 
 ## Contributors
 
