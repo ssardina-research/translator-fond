@@ -5,6 +5,7 @@ import os
 
 from pddl.logic.effects import AndEffect
 from pddl.logic.base import And, OneOf
+from pddl.logic.predicates import Predicate
 from pddl import parse_domain
 from pddl.core import Domain, Action
 from pddl.formatter import domain_to_string
@@ -22,6 +23,8 @@ def _fond2allout(fond_domain: Domain, key="DETDUP") -> Domain:
         if isinstance(act.effect, AndEffect):
             operands = act.effect.operands
         elif isinstance(act.effect, OneOf):
+            operands = [act.effect]
+        elif isinstance(act.effect, Predicate):
             operands = [act.effect]
         else:
             print(
