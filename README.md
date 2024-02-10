@@ -16,7 +16,7 @@ $ python sas_translate/translate.py problems/blocksworld-ipc08/domain.pddl probl
 
 By default, it generates a file `output.sas` with the SAS encoding of the determinization of the original non-deterministic problem. An alternative SAS filename can be given via `--sas-file` option.
 
-Note this translator requires both a domain as well as the specific problem, as it does much more than the determinization per se.
+Note this translator requires both a domain as well as the specific problem, as it does much more than the determinization perse.
 
 The translator is a extension of the SAS translator that comes with [Fast-Downard](https://github.com/aibasel/downward) for classical planning to read and determinize non-deterministic actions. The current codebase is based on the translator found in [release 22.12](https://github.com/aibasel/downward/tree/release-22.12.0) of Fast-Downard. Note that Fast-Downard's translator has changed significantly since the 2011 version that is used by other non-deterministic planners (e.g., PRP or FOND-SAT).
 
@@ -78,6 +78,27 @@ $ python fond2allout.py problems/blocksworld-ipc08/domain.pddl --print --suffix 
 ```
 
 Note this resulting PDDL domain is now deterministic and can then be used as input to the original [Fast-Downard](https://github.com/aibasel/downward) SAS translator.
+
+### Format allowed on effects
+
+The determinizer accepts effects that are a single top-level `oneof` clause or mentioned as clauses in the top-level `And` effect. As such, `oneof` should not be mentioned inside other `oneof` clauses or internal `and` clauses.
+
+If the effect is just one `oneof` clause, then it corresponds to the Unary Nondeterminism (1ND) Normal Form without conditionals in:
+
+* Jussi Rintanen: [Expressive Equivalence of Formalisms for Planning with Sensing](https://gki.informatik.uni-freiburg.de/papers/Rintanen03expr.pdf). ICAPS 2003: 185-194
+
+However, the translator is able to handle more flexible formats, like:
+
+- Single predicate effect, like `:effect (door_unlocked ?r)`
+- Single oneof effect, like `:effect (oneof (and (on-table ?b) (emptyhand)) (and (on ?b ?c) (emptyhand)))`
+- And-effect with many `oneof` clauses, like
+    `:effect (and (f1) (f2) (oneof ......) (f3) (oneof .....) (f4) (oneof ....))`
+
+When there are many `oneof` clauses in a top-level `and` effect, the cross-product of all the `oneof` clauses will determine the deterministic actions.
+
+
+
+
 
 
 ## Contributors
