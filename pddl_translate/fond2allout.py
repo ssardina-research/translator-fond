@@ -10,15 +10,18 @@ from pddl.core import Domain, Action
 from pddl.formatter import domain_to_string
 
 
-def fond2allout(fond_domain_file: str, key="DETDUP", out_file: str = None):
+def fond2allout(fond_domain_file: str):
     """
-    Compute the all-outcomes determinization of a FOND domain from a PDDL file
+    Translate APP to FOND and save the FOND problem in the output directory
 
-    Every ND action is replaced by a set of deterministic actions, one for each possible outcome.
-    Each deterministic action is named as action_<key>_n
-
+    Note: the code inside _get_fond comes from pypddl parser
     """
     fond_domain: Domain = parse_domain(fond_domain_file)
+
+    # Uncomment if having problem parsing the domain and APP problem
+    # print("Domain name:", domain.name)
+    # print("Problem name:", problem.name)
+    # exit(1)
 
     new_actions = []
     for act in fond_domain.actions:
@@ -45,12 +48,14 @@ def fond2allout(fond_domain_file: str, key="DETDUP", out_file: str = None):
             nd_action = True
             oneof_effects.append(list(e.operands))
 
+        print(oneof_effects)
         # build deterministic actions for act
         if nd_action:
             for i, one_effect in enumerate(list(itertools.product(*oneof_effects))):
+                print(i)
                 new_effect = det_effects + list(one_effect)
                 a = Action(
-                    f"{act.name}_{key}_{i}",
+                    f"{act.name}_DETDUP_{i}",
                     parameters=act.parameters,
                     precondition=act.precondition,
                     effect=And(*new_effect),
