@@ -1,17 +1,8 @@
 # FOND All-outcome Determinizers
 
-This repo contains scripts to determinize a PDDL FOND planning domain (with `oneof` clauses) or problem.
+This repo contains scripts to determinize a PDDL FOND planning domain (with `oneof` clauses) or problem. In the all-outcome determinization, each non-deterministic action is replaced with a set of deterministic actions, each encoding one possible effect outcome of the action. A solution in the deterministic version amounts to a weak plan solution in the original FOND problem.
 
-## Lifted determinizer
-
-The script [fond2allout.py](fond2allout.py) produces a _lifted_ all-outcome determinization of a FOND PDDL domain. For example:
-
-```shell
-$ python fond2allout.py problems/blocksworld-ipc08/domain.pddl --print
-```
-
-
-
+There are currently two scripts, one producing a SAS encoding and one a lifted PDDL encoding of the determinized version.
 
 ## SAS problem determinizer
 
@@ -38,9 +29,60 @@ This translator basically does two things:
 This determinization SAS encoding has been used by various planners (albeit one based on Fast-Downward translator from 2011), such as FIP, [PRP](https://github.com/ssardina-planning/planner-for-relevant-policies), [FOND-SAT](https://github.com/ssardina-planning/FOND-SAT), and [FOND-ASP](https://github.com/idrave/FOND-ASP). NNote other FOND planners, like [myND](https://github.com/ssardina-planning/myND) and [Paladinus](https://github.com/ramonpereira/paladinus), also use translation of non-deterministic domains to SAS, but with a very different determinization approach that do not create new actions with suffixes (e.g., `_DETUP1`), but they modify existing actions with new arguments.
 
 
+## Lifted determinizer
+
+The script [fond2allout.py](fond2allout.py) produces a _lifted_ all-outcome determinization of a FOND PDDL domain. The script relies on the [pddl](https://github.com/AI-Planning/pddl) parser, which can be installed via `pip install pddl`.
+
+A simple example run is as follows:
+
+```shell
+$ python fond2allout.py problems/blocksworld-ipc08/domain.pddl
+```
+
+This will save the all-outcome deterministic PDDL version in file `domain-allout.pddl`. Deterministic versions of non-deterministic actions will be indexed with term `_DETDUP_<n>` as done by PRP's  original determinizer. The name of the determinize domain will be the original name with suffix `_ALLOUT`.
+
+To change the suffix use option `--suffix`, to change the output file use `--save`, and to get the resulting PDDL printed on console use `--print`:
+
+```lisp
+$ python fond2allout.py problems/blocksworld-ipc08/domain.pddl --print --suffix "VER" --save output.pddl                                                                    ─╯
+(define (domain blocks-domain_ALLOUT)
+    (:requirements :equality :typing)
+    (:types block)
+    (:predicates (clear ?b - block)  (emptyhand) (holding ?b - block)  (on ?b1 - block ?b2 - block)  (on-table ?b - block))
+    (:action pick-tower
+        :parameters (?b1 - block ?b2 - block ?b3 - block)
+        :precondition (and (emptyhand) (on ?b1 ?b2) (on ?b2 ?b3))
+        :effect (and (holding ?b2) (clear ?b3) (not (emptyhand)) (not (on ?b2 ?b3)))
+    )
+     (:action pick-up-from-table
+        :parameters (?b - block)
+        :precondition (and (emptyhand) (clear ?b) (on-table ?b))
+        :effect (and (holding ?b) (not (emptyhand)) (not (on-table ?b)))
+    )
+     (:action pick-up_VER_0
+        :parameters (?b1 - block ?b2 - block)
+        :precondition (and (not (= ?b1 ?b2)) (emptyhand) (clear ?b1) (on ?b1 ?b2))
+        :effect (and (holding ?b1) (clear ?b2) (not (emptyhand)) (not (clear ?b1)) (not (on ?b1 ?b2)))
+    )
+     (:action pick-up_VER_1
+        :parameters (?b1 - block ?b2 - block)
+        :precondition (and (not (= ?b1 ?b2)) (emptyhand) (clear ?b1) (on ?b1 ?b2))
+        :effect (and (clear ?b2) (on-table ?b1) (not (on ?b1 ?b2)))
+    )
+     (:action put-down
+        :parameters (?b - block)
+        :precondition (holding ?b)
+        :effect (and (on-table ?b) (emptyhand) (clear ?b) (not (holding ?b)))
+    )
+...
+```
+
+Note this resulting PDDL domain is now deterministic and can then be used as input to the original [Fast-Downard](https://github.com/aibasel/downward) SAS translator.
+
+
 ## Contributors
 
-The codebase is a modification/extension of the translator found in [Fast-Downard](https://github.com/aibasel/downward).
+The codebase is a modification/extension of the translators found in [Fast-Downard](https://github.com/aibasel/downward) and [PRP](https://github.com/QuMuLab/planner-for-relevant-policies).
 
 - Nitin Yadav (nitin.yadav@unimelb.edu.au)
 - Seastian Sardina (ssardina@gmail.com)
