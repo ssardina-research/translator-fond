@@ -11,7 +11,7 @@ from pddl.core import Domain, Action
 from pddl.formatter import domain_to_string
 
 
-def _fond2allout(fond_domain: Domain, key="DETDUP") -> Domain:
+def _fond2allout(fond_domain: Domain, suffix="DETDUP") -> Domain:
     """
     Compute the all-outcomes determinization of a FOND Domain
     Output is a new Domain but deterministic, with each ND action replaced by a set of deterministic actions with suffix _key_N, one for each possible outcome.
@@ -48,7 +48,7 @@ def _fond2allout(fond_domain: Domain, key="DETDUP") -> Domain:
             for i, one_effect in enumerate(list(itertools.product(*oneof_effects))):
                 new_effect = det_effects + list(one_effect)
                 a = Action(
-                    f"{act.name}_{key}_{i}",
+                    f"{act.name}_{suffix}_{i}",
                     parameters=act.parameters,
                     precondition=act.precondition,
                     effect=And(*new_effect),
@@ -70,10 +70,10 @@ def _fond2allout(fond_domain: Domain, key="DETDUP") -> Domain:
 
 
 
-def main(fond_domain_file: str, key="DETDUP", file_out=None) -> Domain:
+def main(fond_domain_file: str, suffix="DETDUP", file_out=None) -> Domain:
     fond_domain: Domain = parse_domain(fond_domain_file)
 
-    allout_domain = _fond2allout(fond_domain, key=key)
+    allout_domain = _fond2allout(fond_domain, suffix=suffix)
 
     if file_out:
         with open(file_out, "w") as f:
@@ -109,7 +109,7 @@ if __name__ == "__main__":
     if args.save:
         out_pddl_file = args.save
 
-    allout_domain = main(os.path.abspath(args.domain), key=args.suffix, file_out=out_pddl_file)
+    allout_domain = main(os.path.abspath(args.domain), suffix=args.suffix, file_out=out_pddl_file)
 
     if args.print:
         print(domain_to_string(allout_domain))
