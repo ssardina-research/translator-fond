@@ -1,8 +1,7 @@
+#! /usr/bin/env python3
 import argparse
 import itertools
-import logging
 import os
-import coloredlogs
 
 from pddl.logic.effects import AndEffect
 from pddl.logic.base import And, OneOf
@@ -33,7 +32,10 @@ def fond2allout(fond_domain_file: str):
         elif isinstance(act.effect, OneOf):
             operands = [act.effect]
         else:
-            print("Found an action effect that is not an AND or a OneOf. Type of effect:", type(act.effect))
+            print(
+                "Found an action effect that is not an AND or a OneOf. Type of effect:",
+                type(act.effect),
+            )
             print(act.effect)
             exit(1)
         det_effects = []
@@ -52,43 +54,53 @@ def fond2allout(fond_domain_file: str):
             for i, one_effect in enumerate(list(itertools.product(*oneof_effects))):
                 print(i)
                 new_effect = det_effects + list(one_effect)
-                a = Action(f"{act.name}_DETDUP_{i}",
+                a = Action(
+                    f"{act.name}_DETDUP_{i}",
                     parameters=act.parameters,
                     precondition=act.precondition,
-                    effect=And(*new_effect))
+                    effect=And(*new_effect),
+                )
                 new_actions.append(a)
         else:
             new_actions.append(act)
 
     # finally, build the domain
-    allout_domain = Domain(f"{fond_domain.name}_ALLOUT",
-                    requirements=fond_domain.requirements,
-                    types=fond_domain.types,
-                    constants=fond_domain.constants,
-                    predicates=fond_domain.predicates,
-                    actions=new_actions)
+    allout_domain = Domain(
+        f"{fond_domain.name}_ALLOUT",
+        requirements=fond_domain.requirements,
+        types=fond_domain.types,
+        constants=fond_domain.constants,
+        predicates=fond_domain.predicates,
+        actions=new_actions,
+    )
 
     return allout_domain
 
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser(
-        description='Translate APP to FOND problem (domain + problem files)')
-    parser.add_argument("domain",
-                        nargs="?",
-                        help="domain PDDL file.")
-    parser.add_argument('--print',
-                        action='store_true',
-                        default=False,
-                        help='dump encoding to terminal too (Default: %(default)s)')
+        description="Generate lifted all-outcomes determinization of a FOND domain"
+    )
+    parser.add_argument("domain", nargs="?", help="domain PDDL file to determinize.")
+    parser.add_argument("--save", type=str, help="file to save determinized model")
+    parser.add_argument(
+        "--print",
+        action="store_true",
+        default=False,
+        help="dump encoding to terminal too (Default: %(default)s)",
+    )
 
     args = parser.parse_args()
 
-    base_name, _ = os.path.splitext(os.path.basename(args.domain))
-    fond_domain_file = f"{base_name}-allout.pddl"
+    if args.save:
+        fond_domain_file = args.save
+    else:
+        base_name, _ = os.path.splitext(os.path.basename(args.domain))
+        fond_domain_file = f"{base_name}-allout.pddl"
 
-    allout_domain = fond2allout(os.path.abspath(args.domain), fond_domain_file)
+    allout_domain = fond2allout(os.path.abspath(args.domain))
 
     if args.print:
         print(domain_to_string(allout_domain))
