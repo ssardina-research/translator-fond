@@ -86,6 +86,7 @@ class Action:
         for eff in self.effects:
             eff.instantiate(var_mapping, init_facts, fluent_facts,
                             objects_by_type, effects)
+	    ## CHANGE FOND: still process actions with no effects
         # if effects:
         if metric:
             if self.cost is None:

@@ -368,7 +368,7 @@ class VarValueRenaming:
                 # Mark the variable in the entry as not prevailed.
                 new_var = new_entry[0]
                 new_prevail_vars.discard(new_var)
-
+	    # CHANGE FOND: do not drop any DETDUP action, even if noop
         if not new_pre_post and "_DETDUP_" not in op.name:
             # The operator has no effect.
             return None

@@ -61,6 +61,7 @@ class Requirements:
     def __init__(self, requirements):
         self.requirements = requirements
         for req in requirements:
+            ## CHANGE FOND: add the :non-deterministic requirement
             assert req in (
                 ":strips", ":adl", ":typing", ":negation", ":equality",
                 ":negative-preconditions", ":disjunctive-preconditions",

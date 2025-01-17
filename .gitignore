@@ -643,3 +643,4 @@ output.sas
 tests/
 .vscode/settings.json
 domain-allout.pddl
+original-translators

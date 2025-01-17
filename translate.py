@@ -324,6 +324,7 @@ def build_sas_operator(name, condition, effects_by_variable, cost, ranges,
             # the condition on var is not a prevail condition but a
             # precondition, so we remove it from the prevail condition
             condition.pop(var, -1)
+    # CHANGE FOND: do not drop operators with no effects
     if not pre_post and "_DETDUP_" not in name:  # operator is noop
         return None
     prevail = list(condition.items())

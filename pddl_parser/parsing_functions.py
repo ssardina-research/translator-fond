@@ -2,7 +2,7 @@ import sys
 
 import graph
 import pddl
-from pddl.effects import cartesian_product
+from pddl.effects import cartesian_product ## CHANGE FOND
 
 
 def parse_typed_list(alist, only_variables=False,
@@ -151,6 +151,7 @@ def parse_effects(alist, result, type_dict, predicate_dict):
     # else:
     #     return None
 
+    # CHANGE FOND: allow for multiple effects and produce determinization
     tmp_effects = parse_effect(alist, type_dict, predicate_dict)
     normalized = [tmp_effect.normalize() for tmp_effect in tmp_effects]
     cost_rest_eff = [norm.extract_cost() for norm in normalized]
@@ -211,6 +212,7 @@ def add_effect(tmp_effect, result):
 def parse_effect(alist, type_dict, predicate_dict):
     tag = alist[0]
     if tag == "and":
+        # CHANGE FOND: we allow for multiple effects and normalize
         conjuncts = cartesian_product(*[parse_effect(eff, type_dict, predicate_dict) for eff in alist[1:]])
         return [pddl.ConjunctiveEffect(conjunct) for conjunct in conjuncts]
     elif tag == "forall":
@@ -229,7 +231,7 @@ def parse_effect(alist, type_dict, predicate_dict):
         assert alist[1] == ['total-cost']
         assignment = parse_assignment(alist)
         return [pddl.CostEffect(assignment)]
-    elif tag == "oneof":
+    elif tag == "oneof":  # CHANGE FOND: we allow for multiple effects and normalize
         options = []
         for eff in alist[1:]:
             options.extend(parse_effect(eff, type_dict, predicate_dict))
@@ -295,6 +297,8 @@ def parse_action(alist, type_dict, predicate_dict):
     eff = []
     if effect_list:
         try:
+            ## CHANGE FOND: allow for multiple effects and produce determinization
+
             # cost = parse_effects(effect_list, eff, type_dict, predicate_dict)
             cost_eff_pairs = parse_effects(effect_list, eff, type_dict, predicate_dict)
             if len(cost_eff_pairs) == 1:
@@ -306,6 +310,7 @@ def parse_action(alist, type_dict, predicate_dict):
     for rest in iterator:
         assert False, rest
     if eff:
+        ## CHANGE FOND: allow for multiple effects and produce determinization
         # return pddl.Action(name, parameters, len(parameters),
         #                    precondition, eff, cost)
         actions = [pddl.Action(name + suffix, parameters, len(parameters), precondition, eff, cost) for (cost, eff, suffix) in cost_eff_pairs]
@@ -420,6 +425,8 @@ def parse_domain_pddl(domain_pddl):
         else:
             action = parse_action(entry, type_dict, predicate_dict)
             if action is not None:
+                ## CHANGE FOND: allow for multiple effects and produce determinization
+                # used to be append(action)
                 the_actions.extend(action)
     yield the_actions
     yield the_axioms
