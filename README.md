@@ -16,7 +16,7 @@ Note this translator requires both a domain as well as the specific problem inst
 
 The translator-determinizer is in fact a extension of the SAS translator that ships with the [Downard](https://github.com/aibasel/downward) system for classical planning, which converts a classical PDDL into SAS format (so no handling non-deterministic actions), to perform all-outcome determinization. 
 
-> [!IMPORTANT] Current Version
+> [!IMPORTANT]
 > The current codebase is based on the SAS translator found in [**release 22.12**](https://github.com/aibasel/downward/tree/release-22.12.0) (December 2012) of the Downward system. Note that Downward's translator has changed significantly since the 2011 version that is used by other non-deterministic planners (e.g., PRP or FOND-SAT).
 
 ## SAS-based determinization
@@ -39,7 +39,6 @@ The following changes have been implemented to such translator:
 - Allow the parsing of `oneof` effects to handle FOND problems (already done in 2011 PRP planner).
 - Determinization of non-deterministic actions (those containing `oneof`) to yield corresponding deterministic versions of the action (with suffix `_DETUP_<n>`), one per effect (already done in 2011 PRP planner).
 - Fix to avoid dropping any action that corresponds to a non-deterministic effect.
-
 
 ## Oneof effect format
 
