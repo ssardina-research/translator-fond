@@ -40,6 +40,8 @@ The following changes have been implemented to such translator:
 - Determinization of non-deterministic actions (those containing `oneof`) to yield corresponding deterministic versions of the action (with suffix `_DETUP_<n>`), one per effect (already done in 2011 PRP planner).
 - Fix to avoid dropping any action that corresponds to a non-deterministic effect.
 
+The changes done were documented in issue [#9](https://github.com/ssardina-research/translator-fond/issues/9)
+
 ## Oneof effect format
 
 For different formats on how `oneof` clauses may be used, refer to this paper:
