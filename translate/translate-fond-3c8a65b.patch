@@ -1,0 +1,146 @@
+diff --color -crB -x __pycache__ translate/pddl/actions.py translate-fond/pddl/actions.py
+*** translate/pddl/actions.py	2025-01-19 14:10:09.744195210 +1100
+--- translate-fond/pddl/actions.py	2025-01-18 12:00:29.408382085 +1100
+***************
+*** 93,99 ****
+          for eff in self.effects:
+              eff.instantiate(var_mapping, init_facts, fluent_facts,
+                              objects_by_type, effects)
+!         if effects:
+              if metric:
+                  if self.cost is None:
+                      cost = 0
+--- 93,100 ----
+          for eff in self.effects:
+              eff.instantiate(var_mapping, init_facts, fluent_facts,
+                              objects_by_type, effects)
+!         # CHANGE FOND: return ND-action even if effect is empty!
+!         if effects or "DETDUP" in name.upper():
+              if metric:
+                  if self.cost is None:
+                      cost = 0
+diff --color -crB -x __pycache__ translate/pddl_parser/parsing_functions.py translate-fond/pddl_parser/parsing_functions.py
+*** translate/pddl_parser/parsing_functions.py	2025-01-19 14:10:09.744195210 +1100
+--- translate-fond/pddl_parser/parsing_functions.py	2025-01-18 11:47:35.549200852 +1100
+***************
+*** 526,532 ****
+              context.error(f"Missing fields. Expecting {SYNTAX_ACTION}.")
+          for _ in iterator:
+              context.error(f"Too many fields. Expecting {SYNTAX_ACTION}")
+!     if eff:
+          return pddl.Action(name, parameters, len(parameters),
+                             precondition, eff, cost)
+      else:
+--- 526,533 ----
+              context.error(f"Missing fields. Expecting {SYNTAX_ACTION}.")
+          for _ in iterator:
+              context.error(f"Too many fields. Expecting {SYNTAX_ACTION}")
+!     # CHANGE FOND: keep actions with empty effects
+!     if eff or "DETDUP" in name.upper():
+          return pddl.Action(name, parameters, len(parameters),
+                             precondition, eff, cost)
+      else:
+diff --color -crB -x __pycache__ translate/simplify.py translate-fond/simplify.py
+*** translate/simplify.py	2025-01-19 14:10:09.745195211 +1100
+--- translate-fond/simplify.py	2025-01-18 13:24:38.683930248 +1100
+***************
+*** 369,375 ****
+                  new_var = new_entry[0]
+                  new_prevail_vars.discard(new_var)
+  
+!         if not new_pre_post:
+              # The operator has no effect.
+              return None
+          new_prevail = sorted(
+--- 369,376 ----
+                  new_var = new_entry[0]
+                  new_prevail_vars.discard(new_var)
+  
+!         # CHANGE FOND: do not remove ND operators with empty effect
+!         if not new_pre_post and "DETDUP" not in op.name.upper():
+              # The operator has no effect.
+              return None
+          new_prevail = sorted(
+diff --color -crB -x __pycache__ translate/translate.py translate-fond/translate.py
+*** translate/translate.py	2025-01-19 14:10:09.745195211 +1100
+--- translate-fond/translate.py	2025-01-18 13:34:03.682870771 +1100
+***************
+*** 180,186 ****
+                                mutex_ranges, implied_facts):
+      conditions = translate_strips_conditions(operator.precondition, dictionary,
+                                               ranges, mutex_dict, mutex_ranges)
+!     if conditions is None:
+          return []
+      sas_operators = []
+      for condition in conditions:
+--- 180,188 ----
+                                mutex_ranges, implied_facts):
+      conditions = translate_strips_conditions(operator.precondition, dictionary,
+                                               ranges, mutex_dict, mutex_ranges)
+!     # CHANGE FOND?: unclear if this is needed, when will be empty? what is condition?
+!     # we keep the exception as no DETDUP should be dropped anyways
+!     if conditions is None and "DETDUP" not in operator.name.upper():
+          return []
+      sas_operators = []
+      for condition in conditions:
+***************
+*** 331,337 ****
+              # the condition on var is not a prevail condition but a
+              # precondition, so we remove it from the prevail condition
+              condition.pop(var, -1)
+!     if not pre_post:  # operator is noop
+          return None
+      prevail = list(condition.items())
+      return sas_tasks.SASOperator(name, prevail, pre_post, cost)
+--- 333,340 ----
+              # the condition on var is not a prevail condition but a
+              # precondition, so we remove it from the prevail condition
+              condition.pop(var, -1)
+!     # CHANGE FOND: we want to keep all ND actions, even if they have no effects
+!     if not pre_post and "DETDUP" not in name.upper():  # operator is noop
+          return None
+      prevail = list(condition.items())
+      return sas_tasks.SASOperator(name, prevail, pre_post, cost)
+***************
+*** 714,723 ****
+              for index, effect in reversed(list(enumerate(action.effects))):
+                  if effect.literal.negated:
+                      del action.effects[index]
+- 
+      sas_task = pddl_to_sas(task)
+      dump_statistics(sas_task)
+! 
+      with timers.timing("Writing output"):
+          with open(options.sas_file, "w") as output_file:
+              sas_task.output(output_file)
+--- 710,718 ----
+              for index, effect in reversed(list(enumerate(action.effects))):
+                  if effect.literal.negated:
+                      del action.effects[index]
+      sas_task = pddl_to_sas(task)
+      dump_statistics(sas_task)
+!     print("-------------------------------")
+      with timers.timing("Writing output"):
+          with open(options.sas_file, "w") as output_file:
+              sas_task.output(output_file)
+diff --color -crB -x __pycache__ translate/variable_order.py translate-fond/variable_order.py
+*** translate/variable_order.py	2025-01-19 14:10:09.745195211 +1100
+--- translate-fond/variable_order.py	2025-01-18 13:32:59.816580234 +1100
+***************
+*** 243,249 ****
+                                      if var in self.new_var)
+                      pre_post.append(
+                          (self.new_var[eff_var], pre, post, new_cond))
+!             if pre_post:
+                  op.pre_post = pre_post
+                  op.prevail = [(self.new_var[var], val)
+                                for var, val in op.prevail
+--- 243,250 ----
+                                      if var in self.new_var)
+                      pre_post.append(
+                          (self.new_var[eff_var], pre, post, new_cond))
+!             # CHANGE FOND: return ND-action even if effect is empty!
+!             if pre_post or "DETDUP" in op.name.upper():
+                  op.pre_post = pre_post
+                  op.prevail = [(self.new_var[var], val)
+                                for var, val in op.prevail

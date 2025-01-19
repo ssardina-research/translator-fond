@@ -19,7 +19,6 @@ The only difference with the original translator is that it does not drop operat
 > [!IMPORTANT]
 > The current codebase is based on the SAS translator found in [**release 24.06**](https://github.com/aibasel/downward/tree/release-22.12.0) (June 2024) of the Downward system. Note that Downward's translator has changed significantly since the 2011 version that is used by other non-deterministic planners (e.g., PRP or FOND-SAT).
 
-
 > [!WARNING]
 > This translator requires a classical _deterministic_ domain. Determinization should have hapened before this translator is used.
 
@@ -29,7 +28,17 @@ The only difference with the original translator is that this version does not s
 
 So, this translator will keep any operator whose name contains the string `DETUP`, which signals that is an action corresponding to one of the many `oneof` effects of the original non-deterministic action.
 
-All the changes were documented with the string `# CHANGE FOND`
+All the changes were documented with the string `# CHANGE FOND` and affect the following giles:
+
+```shell
+$ diff -qr translate translate-fond -x '__pycache__'
+Files translate/pddl/actions.py and translate-fond/pddl/actions.py differ
+Files translate/pddl_parser/parsing_functions.py and translate-fond/pddl_parser/parsing_functions.py differ
+Files translate/simplify.py and translate-fond/simplify.py differ
+Files translate/translate.py and translate-fond/translate.py differ
+Files translate/variable_order.py and translate-fond/variable_order.py differ
+```
+
 
 ## Contributors
 
