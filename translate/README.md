@@ -53,7 +53,29 @@ From time to time, the SAS translator is updated and improved and we may want to
     $ diff -crB -x "__pycache__" translate translate-fond > translate-fond-3c8a65b.patch
     ```
 
-5. Push the changes to the remote.
+5. Push the changes to the remote, including the patch!
+
+### Apply the patch
+
+To modify the original translator with the FOND features (assuming the original translator is in `translate/` folder):
+
+```shell
+$ patch --directory=translate --strip=1 < /path/to/patch/translate-fond-3c8a65b.patch
+patching file pddl/actions.py
+patching file pddl_parser/parsing_functions.py
+patching file simplify.py
+patching file translate.py
+patching file variable_order.py
+
+# check!
+$ grep -r "FOND" translate
+translate/variable_order.py:            # CHANGE FOND: return ND-action even if effect is empty!
+translate/translate.py:    # CHANGE FOND?: unclear if this is needed, when will be empty? what is condition?
+translate/translate.py:    # CHANGE FOND: we want to keep all ND actions, even if they have no effects
+translate/simplify.py:        # CHANGE FOND: do not remove ND operators with empty effect
+translate/pddl_parser/parsing_functions.py:    # CHANGE FOND: keep actions with empty effects
+translate/pddl/actions.py:        # CHANGE FOND: return ND-action even if effect is empty!
+```
 
 ## Contributors
 
