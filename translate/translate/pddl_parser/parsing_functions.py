@@ -526,7 +526,8 @@ def parse_action(context, alist, type_dict, predicate_dict):
             context.error(f"Missing fields. Expecting {SYNTAX_ACTION}.")
         for _ in iterator:
             context.error(f"Too many fields. Expecting {SYNTAX_ACTION}")
-    if eff:
+    # CHANGE FOND: keep actions with empty effects
+    if eff or "DETDUP" in name.upper():
         return pddl.Action(name, parameters, len(parameters),
                            precondition, eff, cost)
     else:

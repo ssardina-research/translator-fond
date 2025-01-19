@@ -243,7 +243,8 @@ class VariableOrder:
                                     if var in self.new_var)
                     pre_post.append(
                         (self.new_var[eff_var], pre, post, new_cond))
-            if pre_post:
+            # CHANGE FOND: return ND-action even if effect is empty!
+            if pre_post or "DETDUP" in op.name.upper():
                 op.pre_post = pre_post
                 op.prevail = [(self.new_var[var], val)
                               for var, val in op.prevail

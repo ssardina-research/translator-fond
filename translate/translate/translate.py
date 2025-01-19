@@ -180,7 +180,9 @@ def translate_strips_operator(operator, dictionary, ranges, mutex_dict,
                               mutex_ranges, implied_facts):
     conditions = translate_strips_conditions(operator.precondition, dictionary,
                                              ranges, mutex_dict, mutex_ranges)
-    if conditions is None:
+    # CHANGE FOND?: unclear if this is needed, when will be empty? what is condition?
+    # we keep the exception as no DETDUP should be dropped anyways
+    if conditions is None and "DETDUP" not in operator.name.upper():
         return []
     sas_operators = []
     for condition in conditions:
@@ -331,7 +333,8 @@ def build_sas_operator(name, condition, effects_by_variable, cost, ranges,
             # the condition on var is not a prevail condition but a
             # precondition, so we remove it from the prevail condition
             condition.pop(var, -1)
-    if not pre_post:  # operator is noop
+    # CHANGE FOND: we want to keep all ND actions, even if they have no effects
+    if not pre_post and "DETDUP" not in name.upper():  # operator is noop
         return None
     prevail = list(condition.items())
     return sas_tasks.SASOperator(name, prevail, pre_post, cost)
@@ -714,10 +717,9 @@ def main():
             for index, effect in reversed(list(enumerate(action.effects))):
                 if effect.literal.negated:
                     del action.effects[index]
-
     sas_task = pddl_to_sas(task)
     dump_statistics(sas_task)
-
+    print("-------------------------------")
     with timers.timing("Writing output"):
         with open(options.sas_file, "w") as output_file:
             sas_task.output(output_file)

@@ -93,7 +93,8 @@ class Action:
         for eff in self.effects:
             eff.instantiate(var_mapping, init_facts, fluent_facts,
                             objects_by_type, effects)
-        if effects:
+        # CHANGE FOND: return ND-action even if effect is empty!
+        if effects or "DETDUP" in name.upper():
             if metric:
                 if self.cost is None:
                     cost = 0
