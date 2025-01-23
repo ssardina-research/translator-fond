@@ -17,7 +17,7 @@
 	;; deterministically make r false (touch r)
 	(:action unset_r
 		:parameters ()
-		:precondition ()
+		:precondition (and)
 		:effect (not (r))
 	)
 )

@@ -13,7 +13,7 @@
     )
      (:action unset_r
         :parameters ()
-        :precondition ()
+        :precondition (and)
         :effect (not (r))
     )
 )

@@ -1,4 +1,4 @@
-(define (domain testdomain)
+(define (domain testdomain_NEW)
     (:requirements :strips)
     (:predicates (p) (q) (r))
     (:action ndset_q_DETDUP_1
@@ -18,7 +18,7 @@
     )
      (:action unset_r
         :parameters ()
-        :precondition ()
+        :precondition (and )
         :effect (not (r))
     )
 )
