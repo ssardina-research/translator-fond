@@ -14,7 +14,7 @@
 		:effect (q)
 	)
 
-	;; deterministically make q true
+	;; deterministically make r false (touch r)
 	(:action unset_r
 		:parameters ()
 		:precondition ()
