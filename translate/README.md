@@ -1,6 +1,6 @@
-# SAS-based Determinizer for FOND domains
+# SAS-based Translator for FOND domains
 
-This repo contains a minor variant of the original SAS-based translator shipped with [downard](https://github.com/aibasel/downward/) for planning domains that are determinizations of FOND planning task.
+This repo contains a minor variant of the original SAS-based translator shipped with [downard](https://github.com/aibasel/downward/) for planning domains that are determinizations of FOND planning task (for example via [fond-utils](https://github.com/AI-Planning/fond-utils)).
 
 > [!IMPORTANT]
 > **Current SAS translator version:** commit [`113fe1a`](https://github.com/aibasel/downward/tree/113fe1a626176f0c34888c645d4c25e7c31db372) for release 24.06 - June 2024.
